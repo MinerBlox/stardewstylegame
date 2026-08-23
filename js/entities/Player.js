@@ -1,0 +1,3 @@
+import {CONFIG} from '../config.js';
+export class Player{constructor(x,y){this.x=x;this.y=y;this.dir='south';this.walk=0;this.moving=false;this.radius=10}update(dt,input,blocked,locked=false){if(locked){this.moving=false;return}let dx=0,dy=0;if(input.down('a','A','ArrowLeft'))dx--;if(input.down('d','D','ArrowRight'))dx++;if(input.down('w','W','ArrowUp'))dy--;if(input.down('s','S','ArrowDown'))dy++;this.moving=!!(dx||dy);if(!this.moving)return;const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;if(Math.abs(dx)>Math.abs(dy))this.dir=dx<0?'west':'east';else this.dir=dy<0?'north':'south';const s=CONFIG.PLAYER_SPEED*dt/1000;const nx=this.x+dx*s,ny=this.y+dy*s;if(!blocked(nx,this.y,this.radius))this.x=nx;if(!blocked(this.x,ny,this.radius))this.y=ny;this.walk+=dt*.012}}
+}
