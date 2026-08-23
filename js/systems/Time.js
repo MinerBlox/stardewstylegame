@@ -1,0 +1,2 @@
+import {CONFIG} from '../config.js';
+export class GameTime{constructor(minutes=8*60){this.minutes=minutes}update(dt){this.minutes=(this.minutes+dt*CONFIG.TIME_SCALE/1000)%(24*60)}get h(){return Math.floor(this.minutes/60)}get m(){return Math.floor(this.minutes%60)}get text(){return `${String(this.h).padStart(2,'0')}:${String(this.m).padStart(2,'0')}`}get daypart(){return this.h<12?'Morning':this.h<17?'Afternoon':this.h<21?'Evening':'Night'}serialize(){return this.minutes}}
