@@ -7,6 +7,7 @@
 - **WASD / Arrow keys** — move
 - **E** — interact / talk / enter / browse
 - **I / Tab** — inventory
+- **1–8** — select hotbar slot
 - **Esc** — close panels
 
 ## Features
@@ -14,14 +15,15 @@
 - Large handcrafted medieval overworld with farmland, river, bridge, village square, manor, chapel, mill, ruins and forest edges.
 - Enterable cottage, general store, blacksmith, tavern, apothecary and chapel.
 - 10 named villagers with distinct jobs, dialogue and time-based schedules.
-- Directional player/NPC movement with simple walking animation.
+- Directional player/NPC movement with multi-phase walking animation.
 - Collision against buildings, trees, water, furniture and map boundaries.
-- General interaction prompts, reusable dialogue UI, shops, currency and purchases.
+- General interaction prompts, reusable dialogue UI, shops, currency and working purchases.
 - Data-driven item database and shop stock.
-- 18-slot visual inventory with stacks and item details plus an 8-slot HUD hotbar.
+- 18-slot visual inventory with stacks and item details plus an 8-slot selectable HUD hotbar.
 - Accelerated in-game clock with morning/afternoon/evening/night tinting.
 - Browser-local save/continue with autosave and save-on-transition/purchase.
 - Responsive full-screen Canvas with crisp pixel-art-style procedural rendering.
+- Original inline item artwork plus procedural buildings, characters, vegetation, market stalls, props, lantern glow, chimney smoke and water detail.
 - Lightweight generated square-wave UI audio cues with a volume setting, so no copyrighted audio assets are required.
 
 ## Technical architecture
@@ -36,7 +38,9 @@
     ├── main.js
     ├── config.js
     ├── core/
-    │   └── Game.js
+    │   ├── Game.js
+    │   ├── polish.js
+    │   └── world-polish.js
     ├── entities/
     │   ├── Player.js
     │   └── NPC.js
@@ -53,7 +57,9 @@
 
 ### Rendering
 
-The game intentionally constructs its visual assets with a procedural pixel-art renderer instead of depending on third-party copyrighted sprite packs. Buildings, characters, trees, props, water, fields, interiors and UI are drawn from original geometry and palette data at runtime.
+The game constructs its visual assets with an original procedural pixel-art renderer and inline SVG item artwork instead of depending on third-party copyrighted sprite packs. Buildings, characters, trees, props, water, fields, interiors, item icons and UI are created from project-owned geometry, colour and palette data at runtime.
+
+`Game.js` contains the runtime and base renderer. `polish.js` handles UI/item rendering and responsive interior presentation. `world-polish.js` adds richer building, character, vegetation, market, lantern, smoke and environmental detail while keeping the core systems separate.
 
 ### Data-driven content
 
@@ -82,7 +88,7 @@ for an overworld destination. NPCs move toward the active waypoint and their dir
 
 Because the project uses native ES modules, run it from a local static server rather than opening `index.html` directly from `file://`.
 
-Examples:
+Example:
 
 ```bash
 python -m http.server 8000
