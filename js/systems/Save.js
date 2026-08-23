@@ -1,0 +1,2 @@
+import {CONFIG} from '../config.js';
+export class SaveManager{exists(){return !!localStorage.getItem(CONFIG.SAVE_KEY)}load(){try{const x=JSON.parse(localStorage.getItem(CONFIG.SAVE_KEY));return x&&x.version===1?x:null}catch{return null}}save(game){const p=game.player;localStorage.setItem(CONFIG.SAVE_KEY,JSON.stringify({version:1,scene:game.scene,interiorId:game.interiorId,player:{x:p.x,y:p.y,dir:p.dir},money:game.money,inventory:game.inventory.serialize(),time:game.time.serialize(),talked:[...game.talked]}))}clear(){localStorage.removeItem(CONFIG.SAVE_KEY)}}
