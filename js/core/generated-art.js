@@ -1,0 +1,44 @@
+import {Game} from './Game.js';
+
+const PARTS={environment:['env-0.txt','env-1.txt','env-2.txt'],interior:['interior-0.txt','interior-1.txt','interior-2.txt'],character:['character-0.txt','character-1.txt','character-2.txt']};
+const ART={ready:false,environment:null,interior:null,character:null};
+const url=n=>new URL(`../../assets/generated/${n}`,import.meta.url);
+async function load(files){const chunks=await Promise.all(files.map(f=>fetch(url(f)).then(r=>{if(!r.ok)throw Error(`${f}: ${r.status}`);return r.text()})));const raw=atob(chunks.join('').replace(/\s+/g,'')),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);const objectUrl=URL.createObjectURL(new Blob([bytes],{type:'image/png'})),img=new Image();img.decoding='async';img.src=objectUrl;await img.decode();return{img,url:objectUrl,w:img.naturalWidth,h:img.naturalHeight}}
+export const generatedArtReady=Promise.all(Object.entries(PARTS).map(async([k,v])=>ART[k]=await load(v))).then(()=>{ART.ready=true;document.documentElement.classList.add('generated-art-ready');return ART}).catch(e=>{console.error('Generated art failed to load; procedural fallback remains active.',e);return ART});
+const draw=(c,s,sx,sy,sw,sh,dx,dy,dw,dh,flip=false,a=1)=>{if(!s?.img)return false;c.save();c.globalAlpha=a;c.imageSmoothingEnabled=false;if(flip){c.translate(dx+dw,dy);c.scale(-1,1);c.drawImage(s.img,sx,sy,sw,sh,0,0,dw,dh)}else c.drawImage(s.img,sx,sy,sw,sh,dx,dy,dw,dh);c.restore();return true};
+
+const ENV={cottage:[1,106,36,54],shop:[36,106,34,54],apothecary:[68,105,38,56],tavern:[105,105,40,56],manor:[145,103,45,58],orangeTree:[78,43,29,57],redTree:[105,43,28,57],greenTree:[128,42,31,58],well:[56,70,31,35],bridge:[124,77,54,34],garden:[0,54,45,48],flowers:[45,49,35,30],hedge:[143,0,35,38],barrels:[165,52,27,28]};
+const ROOM={home:[0,101,37,39],general:[36,100,39,40],apothecary:[36,100,39,40],smith:[73,100,40,40],tavern:[109,99,43,41],chapel:[150,99,42,42]};
+const BLD={home:'cottage',general:'shop',smith:'tavern',tavern:'tavern',chapel:'manor',apothecary:'apothecary',mill:'cottage',manor:'manor'};
+const ROLE={player:{x:27,y:2},blacksmith:{x:29,y:72},innkeeper:{x:89,y:72},merchant:{x:89,y:72},apothecary:{x:158,y:72},baker:{x:29,y:117},guard:{x:94,y:117},noble:{x:158,y:117},steward:{x:158,y:117},chaplain:{x:158,y:117},farmer:{x:29,y:155},fisher:{x:94,y:155}};
+const DIR={south:0,west:1,east:1,north:2};
+const ITEMS={bread:[89,3,10,10],apple:[101,3,9,10],herb:[112,3,10,10],seed:[124,3,10,10],torch:[139,2,9,11],rod:[150,2,11,12],pick:[163,2,10,12],axe:[176,2,11,12],sword:[89,18,10,12],shield:[101,18,11,12],cloth:[126,18,11,11],ore:[139,18,11,11]};
+const UI={inventory:[88,49,11,11],shop:[101,49,11,11],dialogue:[114,49,11,11],quest:[127,49,11,11],settings:[140,49,11,11],save:[153,49,11,11],heart:[166,49,11,11]};
+
+const oldBuilding=Game.prototype.drawBuilding;
+Game.prototype.drawBuilding=function(c,b){if(!ART.environment?.img)return oldBuilding.call(this,c,b);const r=ENV[BLD[b.id]||'cottage'],extra=b.id==='manor'?80:42,dx=b.x-extra/2,dy=b.y-70,dw=b.w+extra,dh=b.h+105;c.fillStyle='#0004';c.beginPath();c.ellipse(b.x+b.w/2,b.y+b.h-3,dw*.36,18,0,0,Math.PI*2);c.fill();draw(c,ART.environment,...r,dx,dy,dw,dh);c.font='bold 13px Georgia';c.textAlign='center';c.fillStyle='#211914dd';c.fillRect(b.x+b.w/2-82,b.y+b.h+13,164,23);c.strokeStyle='#9f7445';c.strokeRect(b.x+b.w/2-82,b.y+b.h+13,164,23);c.fillStyle='#f1deb0';c.fillText(b.name,b.x+b.w/2,b.y+b.h+29)};
+const oldTree=Game.prototype.drawTree;
+Game.prototype.drawTree=function(c,x,y){if(!ART.environment?.img)return oldTree.call(this,c,x,y);const names=['orangeTree','redTree','greenTree'],r=ENV[names[Math.abs(Math.floor(x*13+y*7))%3]];draw(c,ART.environment,...r,x-55,y-76,110,122)};
+const oldWell=Game.prototype.drawWell;
+Game.prototype.drawWell=function(c,x,y){if(!ART.environment?.img)return oldWell.call(this,c,x,y);draw(c,ART.environment,...ENV.well,x-72,y-77,144,125)};
+const oldWorld=Game.prototype.drawWorld;
+Game.prototype.drawWorld=function(c){oldWorld.call(this,c);if(!ART.environment?.img)return;draw(c,ART.environment,...ENV.bridge,905,320,470,188);draw(c,ART.environment,...ENV.garden,85,920,260,245,false,.92);draw(c,ART.environment,...ENV.garden,350,925,255,240,false,.92);draw(c,ART.environment,...ENV.flowers,650,520,170,135,false,.88);draw(c,ART.environment,...ENV.hedge,1530,720,180,145,false,.88);draw(c,ART.environment,...ENV.barrels,1800,1120,145,120,false,.92)};
+
+const oldInterior=Game.prototype.drawInterior;
+Game.prototype.drawInterior=function(c,r){if(!ART.interior?.img)return oldInterior.call(this,c,r);c.fillStyle='#2b211a';c.fillRect(0,0,r.w,r.h);c.fillStyle=r.floor;c.globalAlpha=.25;c.fillRect(22,22,r.w-44,r.h-44);c.globalAlpha=1;const rr=ROOM[this.interiorId]||ROOM.home;draw(c,ART.interior,...rr,24,24,r.w-48,r.h-48);c.fillStyle='rgba(235,199,121,.18)';c.fillRect(r.exit.x,r.exit.y,r.exit.w,r.exit.h);c.strokeStyle='rgba(239,213,155,.55)';c.strokeRect(r.exit.x,r.exit.y,r.exit.w,r.exit.h);c.font='bold 14px Georgia';c.textAlign='center';c.fillStyle='#f1dfb5';c.fillText(r.name,r.w/2,24)};
+
+const oldPerson=Game.prototype.drawPerson;
+Game.prototype.drawPerson=function(c,p,isPlayer=false){if(!ART.character?.img)return oldPerson.call(this,c,p,isPlayer);const role=isPlayer?'player':(p.role||'merchant'),b=ROLE[role]||ROLE.merchant,frame=(isPlayer?p.moving:true)?Math.floor(p.walk*.45)%3:0,row=DIR[p.dir]??0,sx=b.x+frame*8,sy=b.y+row*11,w=isPlayer?38:36,h=isPlayer?54:51;c.fillStyle='#0005';c.beginPath();c.ellipse(p.x,p.y+13,13,5,0,0,Math.PI*2);c.fill();draw(c,ART.character,sx,sy,8,11,p.x-w/2,p.y-h+17,w,h,p.dir==='east');if(!isPlayer&&Math.hypot(this.player.x-p.x,this.player.y-p.y)<165){c.font='11px Georgia';c.textAlign='center';const tw=Math.max(54,c.measureText(p.name).width+14);c.fillStyle='#1b1510df';c.fillRect(p.x-tw/2,p.y+27,tw,17);c.strokeStyle='#80623d';c.strokeRect(p.x-tw/2,p.y+27,tw,17);c.fillStyle='#f0e2bf';c.fillText(p.name,p.x,p.y+39)}};
+
+function icon(id,size=30){const r=ITEMS[id];if(!r||!ART.character?.url)return'';const[sx,sy,sw,sh]=r,scale=Math.max(3,Math.ceil(size/Math.max(sw,sh))),atlas=192*scale;return`<span class="atlas-icon" style="width:${size}px;height:${size}px"><img alt="" src="${ART.character.url}" style="width:${atlas}px;height:${atlas}px;left:${-sx*scale}px;top:${-sy*scale}px"></span>`}
+function ui(id,size=20){const r=UI[id];if(!r||!ART.character?.url)return'';const[sx,sy,sw,sh]=r,scale=Math.max(2,Math.ceil(size/Math.max(sw,sh))),atlas=192*scale;return`<span class="atlas-ui" style="width:${size}px;height:${size}px"><img alt="" src="${ART.character.url}" style="width:${atlas}px;height:${atlas}px;left:${-sx*scale}px;top:${-sy*scale}px"></span>`}
+const oldItem=Game.prototype.itemIcon;
+Game.prototype.itemIcon=function(id){return icon(id)||(oldItem?oldItem.call(this,id):'')};
+const oldTalk=Game.prototype.talk;
+Game.prototype.talk=function(n){oldTalk.call(this,n);if(this.dialogue){this.dialogue.role=n.role;portrait(n.role)}};
+function portrait(role){const dlg=document.getElementById('dialogue');if(!dlg||!ART.character?.url)return;let box=dlg.querySelector('.generated-portrait');if(!box){box=document.createElement('div');box.className='generated-portrait';dlg.prepend(box)}dlg.classList.add('with-generated-portrait');const b=ROLE[role]||ROLE.merchant,x=Math.max(0,b.x-27),y=Math.max(0,b.y-5),s=4;box.innerHTML=`<img alt="" src="${ART.character.url}" style="width:${192*s}px;height:${192*s}px;left:${-x*s}px;top:${-y*s}px">`}
+const oldClose=Game.prototype.closePanels;
+Game.prototype.closePanels=function(){oldClose.call(this);document.getElementById('dialogue')?.classList.remove('with-generated-portrait')};
+
+generatedArtReady.then(()=>{if(!ART.ready)return;const set=(id,ico,text)=>{const e=document.getElementById(id);if(e)e.innerHTML=`${ui(ico)}<span>${text}</span>`};set('new-game','quest','New Game');set('continue-game','save','Continue');set('settings-button','settings','Settings');const crest=document.querySelector('.crest');if(crest)crest.innerHTML=ui('heart',46)||crest.innerHTML});
+const style=document.createElement('style');style.textContent=`.atlas-icon,.atlas-ui{display:inline-block;position:relative;overflow:hidden;vertical-align:middle;image-rendering:pixelated;flex:0 0 auto}.atlas-icon img,.atlas-ui img,.generated-portrait img{position:absolute;max-width:none;image-rendering:pixelated;pointer-events:none}button .atlas-ui{margin-right:8px}button{display:flex;align-items:center;justify-content:center;gap:4px}.generated-portrait{display:none;position:absolute;left:12px;bottom:10px;width:96px;height:105px;overflow:hidden;border:2px solid #9c7142;background:#211712;box-shadow:inset 0 0 0 2px #1a120d}.with-generated-portrait .generated-portrait{display:block}.with-generated-portrait{padding-left:126px;min-height:120px}`;document.head.append(style);
