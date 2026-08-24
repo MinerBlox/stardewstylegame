@@ -22,8 +22,9 @@
 - 18-slot visual inventory with stacks and item details plus an 8-slot selectable HUD hotbar.
 - Accelerated in-game clock with morning/afternoon/evening/night tinting.
 - Browser-local save/continue with autosave and save-on-transition/purchase.
-- Responsive full-screen Canvas with crisp pixel-art-style procedural rendering.
-- Original inline item artwork plus procedural buildings, characters, vegetation, market stalls, props, lantern glow, chimney smoke and water detail.
+- Responsive full-screen Canvas with crisp pixel-art rendering.
+- Original AI-generated environment, interior, character, portrait, item and UI artwork integrated into the live renderer.
+- Procedural rendering remains as a safe fallback if generated artwork cannot load.
 - Lightweight generated square-wave UI audio cues with a volume setting, so no copyrighted audio assets are required.
 
 ## Technical architecture
@@ -32,6 +33,11 @@
 /
 ├── index.html
 ├── README.md
+├── assets/
+│   └── generated/
+│       ├── env-0.txt ... env-2.txt
+│       ├── interior-0.txt ... interior-2.txt
+│       └── character-0.txt ... character-2.txt
 ├── css/
 │   └── game.css
 └── js/
@@ -40,7 +46,9 @@
     ├── core/
     │   ├── Game.js
     │   ├── polish.js
-    │   └── world-polish.js
+    │   ├── world-polish.js
+    │   ├── generated-art.js
+    │   └── generated-depth.js
     ├── entities/
     │   ├── Player.js
     │   └── NPC.js
@@ -55,17 +63,25 @@
         └── world.js
 ```
 
-### Rendering
+### Generated artwork pipeline
 
-The game constructs its visual assets with an original procedural pixel-art renderer and inline SVG item artwork instead of depending on third-party copyrighted sprite packs. Buildings, characters, trees, props, water, fields, interiors, item icons and UI are created from project-owned geometry, colour and palette data at runtime.
+The generated PNG atlases are stored in Base64 chunks under `assets/generated/`. `js/core/generated-art.js` fetches the chunks using repository-relative URLs, reconstructs each PNG in the browser, creates cached blob URLs and then switches the renderer from its procedural fallback to the generated art.
 
-`Game.js` contains the runtime and base renderer. `polish.js` handles UI/item rendering and responsive interior presentation. `world-polish.js` adds richer building, character, vegetation, market, lantern, smoke and environmental detail while keeping the core systems separate.
+The three atlases are used as follows:
+
+- **Environment atlas** — village buildings, seasonal trees, well, bridge, gardens, flowers, hedges, barrels and environmental decoration.
+- **Interior atlas** — furnished cottage, merchant/apothecary, blacksmith, tavern and manor/chapel-style room artwork.
+- **Character/item atlas** — player sprite, role-based NPC sprites, dialogue portraits, inventory/shop item icons and title/menu UI accents.
+
+Collision, NPC schedules, interactions, shops and exits remain data-driven, so changing the artwork does not change gameplay geometry.
+
+`Game.js` contains the runtime and procedural fallback renderer. `polish.js` handles UI/item fallback rendering and responsive interior presentation. `world-polish.js` provides additional environmental detail. `generated-art.js` replaces the visual layer with the generated sprite atlases once they are loaded, and `generated-depth.js` removes the old procedural canopy overlay so it does not clash with the generated characters.
 
 ### Data-driven content
 
 - Add items in `js/data/items.js` under `ITEMS`.
 - Add or change shop stock in `SHOPS` in the same file.
-- Add villagers in `js/data/npcs.js`. Each NPC defines colour palette, dialogue and a schedule.
+- Add villagers in `js/data/npcs.js`. Each NPC defines palette metadata, dialogue and a schedule.
 - Add buildings, colliders, trees and interiors in `js/data/world.js`.
 
 ## NPC schedules
@@ -86,9 +102,7 @@ for an overworld destination. NPCs move toward the active waypoint and their dir
 
 ## Local development
 
-Because the project uses native ES modules, run it from a local static server rather than opening `index.html` directly from `file://`.
-
-Example:
+Because the project uses native ES modules and fetches its generated asset chunks, run it from a local static server rather than opening `index.html` directly from `file://`.
 
 ```bash
 python -m http.server 8000
@@ -98,7 +112,7 @@ Then open `http://localhost:8000`.
 
 ## GitHub Pages
 
-All imports, styles and resources use repository-relative URLs. There are no backend, filesystem, localhost-only or build-step dependencies.
+All imports and generated asset chunk requests use repository-relative URLs. There are no backend, filesystem, localhost-only or build-step dependencies.
 
 In GitHub:
 
